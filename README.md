@@ -66,10 +66,10 @@ Command line suite
 Total tests run: 2, Failures: 0, Skips: 0
 ===============================================
 
-
+```
 Note that this example project has the data parameter file `Tests.xlsx` which is loaded from file system:
 
-```java		
+```java
 File file = new File(System.getProperty("user.dir") + File.separator
     + "target\\classes\\Test.xlsx");
 ```
