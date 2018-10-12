@@ -5,10 +5,12 @@ import java.io.FileInputStream;
 import java.io.IOException;
 
 import java.lang.reflect.Method;
-
+import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 
@@ -27,6 +29,8 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.interactions.Actions;
+import org.openqa.selenium.logging.LogType;
+import org.openqa.selenium.logging.LoggingPreferences;
 import org.openqa.selenium.remote.CapabilityType;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -53,7 +57,7 @@ public class TestWithData {
 	public JavascriptExecutor js;
 	public TakesScreenshot screenshot;
 
-	private static String osName;
+	private static String osName = getOSName();
 
 	public int scriptTimeout = 5;
 	public int flexibleWait = 120;
@@ -62,19 +66,53 @@ public class TestWithData {
 
 	public String baseURL = "about:blank";
 
+	private final String spreadsheetName = "MySheet";
 	private final String username = "you%40yourdomain.com";
 	private final String authkey = "yourauthkey";
 	private Sheet spreadsheet = getSpreadSheet();
-	private final String spreadsheetName = "MySheet";
+	// chrome only for simplicity
+	// TODO: use -P profile to override
+	private static final String browser = System.getProperty("webdriver.driver",
+			"chrome");
+	private static final Map<String, String> browserDrivers = new HashMap<>();
+	static {
+		browserDrivers.put("chrome",
+				osName.equals("windows") ? "chromedriver.exe" : "chromedriver");
+	}
+	private static final boolean headless = Boolean
+			.parseBoolean(System.getenv("HEADLESS"));
 
+	@SuppressWarnings("deprecation")
 	@BeforeSuite
 	public void beforeSuite() {
-
 		System.setProperty("webdriver.chrome.driver",
-				(new File("c:/java/selenium/chromedriver.exe")).getAbsolutePath());
-		DesiredCapabilities capabilities = DesiredCapabilities.chrome();
-		ChromeOptions options = new ChromeOptions();
+				osName.equals("windows")
+						? (new File("c:/java/selenium/chromedriver.exe")).getAbsolutePath()
+						: Paths.get(System.getProperty("user.home")).resolve("Downloads")
+								.resolve("chromedriver").toAbsolutePath().toString());
 
+		DesiredCapabilities capabilities = DesiredCapabilities.chrome();
+		ChromeOptions chromeOptions = new ChromeOptions();
+
+		if (osName.equals("windows")) {
+			// TODO: jni
+			if (System.getProperty("os.arch").contains("64")) {
+				String[] paths = new String[] {
+						"C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+						"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" };
+				// check file existence
+				for (String path : paths) {
+					File exe = new File(path);
+					System.err.println("Inspecting browser path: " + path);
+					if (exe.exists()) {
+						chromeOptions.setBinary(path);
+					}
+				}
+			} else {
+				chromeOptions.setBinary(
+						"c:\\Program Files\\Google\\Chrome\\Application\\chrome.exe");
+			}
+		}
 		Map<String, Object> chromePrefs = new HashMap<>();
 		chromePrefs.put("profile.default_content_settings.popups", 0);
 		String downloadFilepath = System.getProperty("user.dir")
@@ -82,27 +120,42 @@ public class TestWithData {
 				+ System.getProperty("file.separator");
 		chromePrefs.put("download.default_directory", downloadFilepath);
 		chromePrefs.put("enableNetwork", "true");
-		options.setExperimentalOption("prefs", chromePrefs);
-		options.addArguments("allow-running-insecure-content");
-		options.addArguments("allow-insecure-localhost");
-		options.addArguments("enable-local-file-accesses");
-		options.addArguments("disable-notifications");
+		chromeOptions.setExperimentalOption("prefs", chromePrefs);
+		chromeOptions.addArguments("allow-running-insecure-content");
+		chromeOptions.addArguments("allow-insecure-localhost");
+		chromeOptions.addArguments("enable-local-file-accesses");
+		chromeOptions.addArguments("disable-notifications");
 		// options.addArguments("start-maximized");
-		options.addArguments("browser.download.folderList=2");
-		options.addArguments(
+		chromeOptions.addArguments("browser.download.folderList=2");
+		chromeOptions.addArguments(
 				"--browser.helperApps.neverAsk.saveToDisk=image/jpg,text/csv,text/xml,application/xml,application/vnd.ms-excel,application/x-excel,application/x-msexcel,application/excel,application/pdf");
-		options.addArguments("browser.download.dir=" + downloadFilepath);
+		chromeOptions.addArguments("browser.download.dir=" + downloadFilepath);
 		// options.addArguments("user-data-dir=/path/to/your/custom/profile");
+
+		// options for headless
+		if (headless) {
+			for (String optionAgrument : (new String[] { "headless",
+					"window-size=1200x800" })) {
+				chromeOptions.addArguments(optionAgrument);
+			}
+		}
+
 		capabilities.setBrowserName(DesiredCapabilities.chrome().getBrowserName());
-		capabilities.setCapability(ChromeOptions.CAPABILITY, options);
+		capabilities.setCapability(ChromeOptions.CAPABILITY, chromeOptions);
 		capabilities.setCapability(CapabilityType.ACCEPT_SSL_CERTS, true);
+
+		capabilities.setBrowserName(DesiredCapabilities.chrome().getBrowserName());
+		capabilities.setCapability(
+				org.openqa.selenium.chrome.ChromeOptions.CAPABILITY, chromeOptions);
 		driver = new ChromeDriver(capabilities);
 		actions = new Actions(driver);
 
 		driver.manage().timeouts().setScriptTimeout(scriptTimeout,
 				TimeUnit.SECONDS);
 		wait = new WebDriverWait(driver, flexibleWait);
-		wait.pollingEvery(pollingInterval, TimeUnit.MILLISECONDS);
+		// Selenium Driver version sensitive code: 3.13.0 vs. 3.8.0 and older
+		wait.pollingEvery(Duration.ofMillis(pollingInterval));
+		// wait.pollingEvery(pollingInterval, TimeUnit.MILLISECONDS);
 		screenshot = ((TakesScreenshot) driver);
 		js = ((JavascriptExecutor) driver);
 		spreadsheet = getSpreadSheet();
@@ -207,4 +260,16 @@ public class TestWithData {
 	public void tearDown() {
 		driver.quit();
 	}
+
+	// Utilities
+	public static String getOSName() {
+		if (osName == null) {
+			osName = System.getProperty("os.name").toLowerCase();
+			if (osName.startsWith("windows")) {
+				osName = "windows";
+			}
+		}
+		return osName;
+	}
+
 }
