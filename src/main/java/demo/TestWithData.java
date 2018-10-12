@@ -11,7 +11,11 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
+
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 
@@ -35,6 +39,11 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
 
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.text.IsEqualIgnoringCase.equalToIgnoringCase;
+import static org.hamcrest.core.StringContains.containsString;
+
 public class TestWithData {
 
 	public WebDriver driver;
@@ -53,9 +62,10 @@ public class TestWithData {
 
 	public String baseURL = "about:blank";
 
-	private String username = "you%40yourdomain.com";
-	private String authkey = "yourauthkey";
+	private final String username = "you%40yourdomain.com";
+	private final String authkey = "yourauthkey";
 	private Sheet spreadsheet = getSpreadSheet();
+	private final String spreadsheetName = "MySheet";
 
 	@BeforeSuite
 	public void beforeSuite() {
@@ -99,6 +109,13 @@ public class TestWithData {
 	}
 
 	public Sheet getSpreadSheet() {
+		// NOTE: Exception in thread "main" org.testng.TestNGException:
+		// Cannot
+		// instantiate class demo.TestWithData
+		// String resourcePath = Thread.currentThread().getContextClassLoader()
+		// .getResource("").getPath();
+		// System.err.println("Resource path: " + resourcePath);
+		System.err.println("User dir: " + System.getProperty("user.dir"));
 		File file = new File(System.getProperty("user.dir") + File.separator
 				+ "target\\classes\\Test.xlsx");
 
@@ -107,14 +124,15 @@ public class TestWithData {
 		try {
 			inputStream = new FileInputStream(file);
 			wb = WorkbookFactory.create(inputStream);
-			System.err.println(wb.toString());
-		} catch (IOException ex) {
-			System.err.println("Error Message " + ex.getMessage());
+			System.err.println("Workbook: " + wb.toString());
+		} catch (IOException e) {
+			System.err.println("Excption (ignored): " + e.getMessage());
+			throw new RuntimeException(e);
 		} catch (InvalidFormatException e) {
 			System.err.println("Invalid File format!");
 		}
 
-		Sheet spreadsheet = wb.getSheet("spreadsheet");
+		Sheet spreadsheet = wb.getSheet(spreadsheetName);
 
 		return spreadsheet;
 	}
@@ -134,49 +152,53 @@ public class TestWithData {
 	@Test
 	public void failedLoginPage() {
 
-		String user = spreadsheet.getRow(0).getCell(0).toString();
-		String pass = spreadsheet.getRow(0).getCell(1).toString();
+		Row row = spreadsheet.getRow(0);
+		Cell cell = row.getCell(0);
+		String username = cell.toString();
+		assertThat(username, notNullValue());
+		System.err.println("Entering username: " + username);
+		driver.findElement(By.name("username")).sendKeys(username);
 
-		System.err.println("Enter username: " + user);
-		driver.findElement(By.name("username")).sendKeys(user);
-
-		System.err.println("Enter password: " + pass);
-		driver.findElement(By.name("password")).sendKeys(pass);
+		cell = row.getCell(1);
+		String password = cell.toString();
+		assertThat(password, notNullValue());
+		System.err.println("Entering password: " + password);
+		driver.findElement(By.name("password")).sendKeys(password);
 
 		System.err.println("Logging in");
 		driver.findElement(By.cssSelector("div.form-actions > button")).click();
 
-		System.err.println("Confirm unable to Log in");
+		System.err.println("Confirm not being able to login");
 		wait.until(ExpectedConditions.textToBePresentInElementLocated(
 				By.xpath("/html/body/div/div/div/div[1]"),
 				"Username or password is incorrect"));
-		System.err.println("Test Finished");
 	}
 
 	@Test
 	public void loginPage() {
 
-		String user = spreadsheet.getRow(1).getCell(0).toString();
-		String pass = spreadsheet.getRow(1).getCell(1).toString();
+		String username = spreadsheet.getRow(1).getCell(0).toString();
+		assertThat(username, notNullValue());
+		System.err.println("Entering username: " + username);
+		driver.findElement(By.name("username")).sendKeys(username);
 
-		System.err.println("Enter username: " + user);
-		driver.findElement(By.name("username")).sendKeys(user);
-
-		System.err.println("Enter password: " + pass);
-		driver.findElement(By.name("password")).sendKeys(pass);
+		String password = spreadsheet.getRow(1).getCell(1).toString();
+		assertThat(password, notNullValue());
+		System.err.println("Entering password: " + password);
+		driver.findElement(By.name("password")).sendKeys(password);
 
 		System.err.println("Logging in");
 		driver.findElement(By.cssSelector("div.form-actions > button")).click();
 
-		System.err.println("Ensure the page has loaded completely");
+		System.err.println("Wait for the page load completely");
 		wait.until(ExpectedConditions.visibilityOfElementLocated(
 				By.xpath("//*[@id=\"logged-in-message\"]/h2")));
 
-		System.err.println("Confirm welcome message");
 		String welcomeMessage = driver
 				.findElement(By.xpath("//*[@id=\"logged-in-message\"]/h2")).getText();
-		Assert.assertEquals("Welcome tester@crossbrowsertesting.com",
-				welcomeMessage);
+		assertThat(welcomeMessage,
+				containsString("Welcome tester@crossbrowsertesting.com"));
+		System.err.println("Confirmed the welcome message");
 
 		System.err.println("Test Finished");
 	}
