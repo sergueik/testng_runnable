@@ -48,7 +48,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.text.IsEqualIgnoringCase.equalToIgnoringCase;
 import static org.hamcrest.core.StringContains.containsString;
 
-public class TestWithData {
+public class DataDrivenTest {
 
 	public WebDriver driver;
 	public WebDriverWait wait;

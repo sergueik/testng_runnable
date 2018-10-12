@@ -1,4 +1,3 @@
-
 ### Info
 
 This directory contains project
@@ -75,7 +74,7 @@ File file = new File(System.getProperty("user.dir") + File.separator
 ```
 therefore one has to make it avalable from the specific path relative to the directory jar is placed.
 It has to be checked in to `src/main/resources`.
- 
+
 The `default` profile makes the project version part of resulting jar filename,
 the `runnable-jar-with-dependencies` profile strips it away.
 
@@ -89,9 +88,29 @@ to over 36M:
 02/27/2018  08:57 AM        36,901,791 monolithic_runnable_testng.jar
 ```
 
+NOTE: One cannot run the test class(es) as th regular testng test:
+```cmd
+mvn clean test
+
+[WARNING] No processor claimed any of these annotations: org.testng.annotations.
+BeforeSuite,org.testng.annotations.BeforeMethod,org.testng.annotations.Test,org.
+testng.annotations.AfterSuite,org.testng.annotations.AfterMethod
+
+```
+For test annonated classes to be found, require rearranging the project files to store tests under `src/test/java` directory
+but this will prevent the bootstrap class from seeing those (due to separation of build phases handling `main` and `test`):
+```cmd
+mvn compile
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.6.0:
+compile (default-compile) on project runnable_testng: Compilation failure
+[ERROR] /c:/developer/sergueik/testng_runnable/src/main/java/demo/EntryPoint.java:[5,12] cannot find symbol
+[ERROR] symbol:   class TestWithData
+```
+For running Maven testNG tests from a jar without dedicated bootstrap class see [this](https://niharikawhatsnext.wordpress.com/2015/03/11/running-maven-testng-tests-as-a-jar/).
+
 ### See also:
 
- * [maven vagrant plugin](https://github.com/nicoulaj/vagrant-maven-plugin)
+  * [maven vagrant plugin](https://github.com/nicoulaj/vagrant-maven-plugin)
 
 #### TODO
 Make it possible to build the jar in a different os than tests are going to run.

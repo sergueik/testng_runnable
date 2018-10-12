@@ -18,6 +18,7 @@
     <maven-compiler-plugin.version>3.6.0</maven-compiler-plugin.version>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
+    <maven-surefire-plugin.version>2.20</maven-surefire-plugin.version>
     <selenium.version>3.13.0</selenium.version>
     <selenium-chrome-driver.version>${selenium.version}</selenium-chrome-driver.version>
     <selenium-firefox-driver.version>${selenium.version}</selenium-firefox-driver.version>
@@ -131,6 +132,40 @@
           <showWarnings>true</showWarnings>
           <showDeprecation>true</showDeprecation>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>${maven-surefire-plugin.version}</version>
+        <configuration>
+          <trimStackTrace>false</trimStackTrace>
+          <encoding>${project.build.sourceEncoding}</encoding>
+	  <!--
+	  NOTE: specifying the suite XML file prevents surefile from finding every tests cass on its own 
+    and execute everything with the method name mask match
+          <suiteXmlFiles>
+            <suiteXmlFile>src/test/resources/suites/testng.xml</suiteXmlFile>
+	  </suiteXmlFiles>
+	  -->
+          <argLine>-Dfile.encoding=${project.build.sourceEncoding}</argLine>
+          <!-- Skip the default running of this plug-in (or everything is run twice...see below) -->
+          <skip>true</skip>
+        </configuration>
+        <executions>
+          <execution>
+            <id>unit-tests</id>
+            <phase>test</phase>
+            <goals>
+              <goal>test</goal>
+            </goals>
+            <configuration>
+              <skip>false</skip>
+              <systemPropertyVariables>
+                <webdriver.driver>${browser.name}</webdriver.driver>
+              </systemPropertyVariables>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
