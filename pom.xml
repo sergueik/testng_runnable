@@ -23,7 +23,7 @@
     <selenium-chrome-driver.version>${selenium.version}</selenium-chrome-driver.version>
     <selenium-firefox-driver.version>${selenium.version}</selenium-firefox-driver.version>
     <testng.version>6.11</testng.version>
-    <poi.version>3.17</poi.version>
+    <poi.version>4.1.1</poi.version>
     <poiooxml.version>3.17</poiooxml.version>
     <mainClass>demo.EntryPoint</mainClass>
   </properties>
