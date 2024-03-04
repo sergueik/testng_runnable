@@ -15,17 +15,19 @@ mvn -P single clean package
 ```
 and run
 ```cmd
-set DUMMYDIR=c:\temp
+set DUMMYDIR=c:\temp\dummydir
+mkdir %DUMMYDIR%
 copy target\runnable_testng-jar-with-dependencies.jar %DUMMYDIR%
 mkdir %DUMMYDIR%\target\classes
 copy target\classes\Test.xlsx %DUMMYDIR%\target\classes
+copy testng.xml %DUMMYDIR%
 ```
 The `%DUMMYDIR%` represents the Jenkins workspace directory
 
 Running the test from `%DUMMYDIR%`
 ```cmd
 pushd %DUMMYDIR%
-java -jar runnable_testng-jar-with-dependencies.jar
+java -jar runnable_testng-jar-with-dependencies.jar testng.xml
 ```
 
 would produce:
